@@ -49,7 +49,7 @@ class administradorTarea:
         conexion.close()
         
         # Verificar si el ID está repetido
-        print(ids)
+        
         return ids
 
     def traer_tarea(self, tarea_id: int) -> Tarea:

@@ -2,7 +2,7 @@ import datetime
 from typing import Optional
 class Tarea:
     
-    def __init__(self, id: Optional[int] = None, titulo:  Optional[str] = None, descripcion:  Optional[str] = None, estado:  Optional[str] = None, creada: Optional[str] = None, actualizada: Optional[str] = None):
+    def __init__(self, id: int, titulo:str, descripcion: str, estado:  str, creada: Optional[str] = None, actualizada: Optional[str] = None):
         # if None in (id, titulo, descripcion, estado):
         #     raise ValueError("Faltan datos al crear una instancia de la clase Tarea")
         #     print("Falta un parametro")

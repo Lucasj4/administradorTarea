@@ -9,9 +9,7 @@ from tareas import Tarea
 from basededatos import crearDB, crearTabla
 from fastapi import FastAPI, HTTPException, status
 import datetime
-import tkinter as tk
-from tkinter import messagebox
-import requests
+
 class tareaApi(BaseModel):
     id: int
     titulo: str
@@ -27,14 +25,16 @@ administrador = administradorTarea('tareas.db')
 def insertar_tarea(tarea:tareaApi):
     tarea_dict = dict(tarea)
     tarea_objeto = Tarea(**tarea_dict)
+    # Verificar si algún valor es un string vacío
+    if any(value == "" for value in tarea_dict.values()):
+        raise HTTPException(status_code=400, detail="Error: Uno o más campos están vacíos.")
+    
     if administrador.buscar_id_repetido(tarea_objeto.id):
         raise HTTPException(status_code=409, detail="Error: El ID de la tarea ya está repetido.")
-    
-    try:
+    else:
         administrador.agregar_tarea(tarea_objeto)
         return tarea_objeto
-    except Exception as e:
-        raise HTTPException(status_code=422, detail="Error al insertar la tarea: " + str(e))
+  
 
 @app.delete("/tarea/{id}")
 def eliminar_tarea_endpoint(id: int):
@@ -76,4 +76,5 @@ if __name__ == "__main__":
     crearTabla()
     ventana = VentanaPrincipal()
     ventana.mainloop()
-    # administrador.buscar_id_repetido(1)
+    
+    # administrador.agregar_tarea()

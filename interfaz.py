@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 import requests
-
+import json
 
 
 
@@ -78,9 +78,12 @@ class VentanaPrincipal(tk.Tk):
                         
                         messagebox.showinfo("Tarea creada", f"Tarea creada:\nID: {tarea_creada['id']}\nTítulo: {tarea_creada['titulo']}\nDescripción: {tarea_creada['descripcion']}\nEstado: {tarea_creada['estado']}")
             elif response.status_code == 422:
-                        messagebox.showerror("Error", "Falta un campo o el id no es un entero")
+                        messagebox.showerror("Error", "El id debe ser un entero")
             elif response.status_code==409:
-                         messagebox.showerror("Error", "Ya hay una tarea con ese id")
+                        messagebox.showerror("Error", "Ya hay una tarea con ese id")
+            elif response.status_code == 400:
+                        messagebox.showerror("Error", "Campos vacios")
+        
 
                                 # Cerrar la ventana "Crear Tarea"
         btn_crear = tk.Button(ventana, text="Crear", command=crear_tareadb)
@@ -131,8 +134,7 @@ class VentanaPrincipal(tk.Tk):
         
         def eliminartarea_api(id):
             response = requests.delete(f'http://127.0.0.1:8000/tarea/{id}', json={"id": id})   
-            print("Status code:", response.status_code)
-            print("Response text:", response.text)
+          
             
             if response.status_code == 200:
                 messagebox.showinfo("Tarea eliminada", f"Tarea con {id} eliminada")
