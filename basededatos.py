@@ -8,7 +8,7 @@ def crearDB(db_file):
     conn.close()
 
 def crearTabla():
-    conn = sql.connect('tareas.db')
+    conn = sql.connect('admintareas.db')
     cursor = conn.cursor()
     cursor.execute("""CREATE TABLE IF NOT EXISTS tareas (
             id INTEGER,
@@ -22,7 +22,7 @@ def crearTabla():
     conn.close()
 
 def insertarFila(tarea:Tarea):
-        conn = sql.connect('tareas.db')
+        conn = sql.connect('admintareas.db')
         cursor = conn.cursor()
         cursor.execute("""INSERT INTO tareas (id, titulo, descripcion, estado, creada, actualizada)
                           VALUES (?, ?, ?, ?, ?, ?)""", tuple(tarea.values()))
@@ -33,7 +33,7 @@ def insertarFila(tarea:Tarea):
  
         
 def traerTAREADB(id):
-    conn = sql.connect('tareas.db')
+    conn = sql.connect('admintareas.db')
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM tareas WHERE id=?"
     ,(id,))
@@ -44,7 +44,7 @@ def traerTAREADB(id):
     return tarea
 
 def traerTAREASDB():
-    conn = sql.connect('tareas.db')
+    conn = sql.connect('admintareas.db')
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM tareas"
     )
@@ -57,7 +57,7 @@ def traerTAREASDB():
 
 
 def modificarValor(id, estado, actualizada):
-    conn = sql.connect('tareas.db')
+    conn = sql.connect('admintareas.db')
     cursor = conn.cursor()
     cursor.execute("UPDATE tareas SET estado=?, actualizada=? WHERE id=?", (estado, actualizada, id))
     conn.commit()

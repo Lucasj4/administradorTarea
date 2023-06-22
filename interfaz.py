@@ -164,7 +164,7 @@ class VentanaPrincipal(tk.Tk):
 
             if response.status_code == 200:
                 tarea_creada = response.json()
-                messagebox.showinfo("Tarea", f"Tarea:\nID: {tarea_creada['id']}\nTítulo: {tarea_creada['titulo']}\nDescripción: {tarea_creada['descripcion']}\nEstado: {tarea_creada['estado']},\nActualizada: {tarea_creada['actualizada']}")
+                messagebox.showinfo("Tarea", f"Tarea:\nID: {tarea_creada['id']}\nTítulo: {tarea_creada['titulo']}\nDescripción: {tarea_creada['descripcion']}\nEstado: {tarea_creada['estado']},\nCreada:{tarea_creada['creada']},\nActualizada: {tarea_creada['actualizada']}")
             elif response.status_code == 404:
                 messagebox.showerror("Error", "No hay tarea con ese id")
             elif response.status_code == 422:

@@ -1,17 +1,17 @@
 from tareas import Tarea
 from basededatos import insertarFila, crearDB, crearTabla, traerTAREADB, traerTAREASDB, modificarValor
 import sqlite3 as sql
-from fastapi import FastAPI
 from fastapi import HTTPException, status
-from datetime import datetime
 from pydantic import BaseModel
-from tkinter import messagebox
-import tkinter.messagebox as messagebox
-import datetime
-import tkinter as tk
 import requests
+import hashlib
 from flask import Response
+from passlib.context import CryptContext
 
+class User(BaseModel):
+    username: str
+    password: str
+crypt = CryptContext(schemes=["bcrypt"])
 class administradorTarea:
     def __init__(self, db_file:str):
         self.db = sql.connect(db_file)
@@ -20,7 +20,7 @@ class administradorTarea:
     def agregar_tarea(self, tarea: Tarea) -> int:
         tarea_dic = tarea.tarea_dict()
             
-        conn = sql.connect('tareas.db')
+        conn = sql.connect('admintareas.db')
         cursor = conn.cursor()
         
         cursor.execute("""INSERT INTO tareas (id, titulo, descripcion, estado, creada, actualizada)
@@ -33,7 +33,7 @@ class administradorTarea:
     
     def buscar_id_repetido(self, id):
     # Conectar a la base de datos
-        conexion = sql.connect('tareas.db')
+        conexion = sql.connect('admintareas.db')
         cursor = conexion.cursor()
 
         # Ejecutar la consulta SQL para buscar el campo "id" repetido
@@ -62,7 +62,7 @@ class administradorTarea:
             return None
 
     def traer_todas_tareas(self):
-        conn = sql.connect('tareas.db')
+        conn = sql.connect('admintareas.db')
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM tareas"
         )
@@ -75,7 +75,7 @@ class administradorTarea:
         if tarea_id is None:
             raise ValueError("El ID de la tarea no puede ser nulo")
 
-        conn = sql.connect('tareas.db')
+        conn = sql.connect('admintareas.db')
         cursor = conn.cursor()
 
         # Consultar la tarea antes de eliminarla
@@ -98,8 +98,69 @@ class administradorTarea:
         
     def actualizar_estado_tarea(self, tarea_id: int, estado: str, actualizada:str):
        
-        conn = sql.connect('tareas.db')
+        conn = sql.connect('admintareas.db')
         cursor = conn.cursor()
         cursor.execute("UPDATE tareas SET estado=?, actualizada=? WHERE id=?", (estado, actualizada, tarea_id))
         conn.commit()
         conn.close()
+
+    def crearTabla(self):
+        conn = sql.connect('admintareas.db')
+        cursor = conn.cursor()
+        cursor.execute("""CREATE TABLE IF NOT EXISTS usuarios(
+                    user TEXT,
+                    password TEXT
+                    )""")
+        conn.commit()
+        conn.close()
+    
+
+    def agregarUser(self, user: User):
+        conn = sql.connect('admintareas.db')
+        cursor = conn.cursor()
+        hashed_password = crypt.hash(user.password)
+        cursor.execute("""INSERT INTO usuarios (user, password)
+                        VALUES (?, ?)""", (user.username, hashed_password))
+        user_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        return user_id
+    
+    # def buscarUser(self, username: str) -> bool:
+    #     conn = sql.connect('admintareas.db')
+    #     cursor = conn.cursor()
+
+    #     cursor.execute("SELECT COUNT(*) FROM usuarios WHERE user=?", (username,))
+    #     result = cursor.fetchone()
+
+    #     conn.close()
+
+    #     if result and result[0] > 0:
+    #         return True
+    #     else:
+    #         return False
+    
+    def buscarUser(self, username: str) -> tuple:
+            conn = sql.connect('admintareas.db')
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT user, password FROM usuarios WHERE user=?", (username,))
+            resultado = cursor.fetchone()
+
+            conn.close()
+
+            if resultado:
+               
+                return resultado  # Devuelve una tupla con el usuario y la contraseña
+            else:
+                
+                return None 
+    def eliminarUser(self, username: User):
+        conn = sql.connect('admintareas.db')
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM usuarios WHERE user=?", (username,))
+        conn.commit()
+        conn.close()
+
+
+
