@@ -88,6 +88,8 @@ class VentanaPrincipal(tk.Tk):
                                 # Cerrar la ventana "Crear Tarea"
         btn_crear = tk.Button(ventana, text="Crear", command=crear_tareadb)
         btn_crear.pack(pady=10)
+        
+        
 
        
     def actualizar_estado(self):

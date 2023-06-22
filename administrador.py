@@ -1,5 +1,5 @@
 from tareas import Tarea
-from basededatos import insertarFila, crearDB, crearTabla, traerTAREADB, traerTAREASDB, modificarValor
+# from basededatos import insertarFila, crearDB, crearTabla, traerTAREADB, traerTAREASDB, modificarValor
 import sqlite3 as sql
 from fastapi import HTTPException, status
 from pydantic import BaseModel
@@ -53,7 +53,15 @@ class administradorTarea:
         return ids
 
     def traer_tarea(self, tarea_id: int) -> Tarea:
-        tarea=traerTAREADB(tarea_id)
+       
+        conn = sql.connect('admintareas.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM tareas WHERE id=?"
+        ,(tarea_id,))
+        tarea = cursor.fetchone()
+        conn.commit()
+        conn.close()
+
         
         if tarea:
             # print(tarea)
