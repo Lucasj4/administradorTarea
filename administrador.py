@@ -7,11 +7,13 @@ import requests
 import hashlib
 from flask import Response
 from passlib.context import CryptContext
-
+import random
 class User(BaseModel):
     username: str
     password: str
+    ultimoAcesso: str | None
 crypt = CryptContext(schemes=["bcrypt"])
+
 class administradorTarea:
     def __init__(self, db_file:str):
         self.db = sql.connect(db_file)
@@ -117,7 +119,8 @@ class administradorTarea:
         cursor = conn.cursor()
         cursor.execute("""CREATE TABLE IF NOT EXISTS usuarios(
                     user TEXT,
-                    password TEXT
+                    password TEXT,
+                    ultimoAcceso TEXT
                     )""")
         conn.commit()
         conn.close()
@@ -134,35 +137,30 @@ class administradorTarea:
         conn.close()
         return user_id
     
-    # def buscarUser(self, username: str) -> bool:
-    #     conn = sql.connect('admintareas.db')
-    #     cursor = conn.cursor()
+    def actualizar_ultimo_acceso(self, username: str, ultimo_acceso: str):
+        conn = sql.connect('admintareas.db')
+        cursor = conn.cursor()
 
-    #     cursor.execute("SELECT COUNT(*) FROM usuarios WHERE user=?", (username,))
-    #     result = cursor.fetchone()
+        # Actualiza el campo "ultimoAcceso" del usuario con el valor proporcionado.
+        cursor.execute("UPDATE usuarios SET ultimoAcceso=? WHERE user=?", (ultimo_acceso, username))
+        conn.commit()
+        conn.close()
 
-    #     conn.close()
-
-    #     if result and result[0] > 0:
-    #         return True
-    #     else:
-    #         return False
     
     def buscarUser(self, username: str) -> tuple:
-            conn = sql.connect('admintareas.db')
-            cursor = conn.cursor()
+        conn = sql.connect('admintareas.db')
+        cursor = conn.cursor()
 
-            cursor.execute("SELECT user, password FROM usuarios WHERE user=?", (username,))
-            resultado = cursor.fetchone()
+        cursor.execute("SELECT user, password, ultimoAcceso FROM usuarios WHERE user=?", (username,))
+        resultado = cursor.fetchone()
 
-            conn.close()
+        conn.close()
 
-            if resultado:
-               
-                return resultado  # Devuelve una tupla con el usuario y la contraseña
-            else:
-                
-                return None 
+        if resultado:
+            return resultado  # Devuelve una tupla con el usuario, contraseña y último acceso
+        else:
+            return None
+            
     def eliminarUser(self, username: User):
         conn = sql.connect('admintareas.db')
         cursor = conn.cursor()
@@ -171,4 +169,6 @@ class administradorTarea:
         conn.close()
 
 
-
+    def generar_numero_aleatorio(self) -> int:
+        numero_aleatorio = random.randint(1, 1000)
+        return numero_aleatorio

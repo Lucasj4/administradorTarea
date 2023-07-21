@@ -2,38 +2,237 @@ import tkinter as tk
 from tkinter import messagebox
 import requests
 import json
-
+from administrador import administradorTarea
 
 
 class VentanaPrincipal(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Ventana principal")
-        self.geometry('500x600')
+        ancho = self.winfo_screenwidth()
+        altura = self.winfo_screenheight()
+        self.geometry(f"{ancho}x{altura}")
         self.config(bg='yellow')
+        self.ventana_principal = self
+        self.token_ingresado = None
+        self.ventana_tareas = None 
+        self.label_usuario = None
+        
+        btn_iniciar_sesion = tk.Button(self, text="Iniciar sesión", command=self.login, width=15)
+        btn_iniciar_sesion.pack(pady=10)
+        btn_registrarse = tk.Button(self, text="Registrarse", command=self.abrir_ventana_registro, width= 15)
+        btn_registrarse.pack(pady=10)
 
-        # Botones
-        btn_crear_tarea = tk.Button(self, text="Crear tarea", command=self.crear_tarea)
-        btn_crear_tarea.pack(pady=10)
+       
+    def abrir_ventana_registro(self):
+        ventana_registro = tk.Toplevel(self)
+        ventana_registro.title('Registrarse')
+        ventana_registro.geometry("300x300")
+            
+        usuario_label = tk.Label(ventana_registro, text="Usuario:")
+        usuario_label.pack()
 
-        btn_traer_tarea = tk.Button(self, text="Traer tarea", command=self.traer_tarea)
-        btn_traer_tarea.pack(pady=10)
+        usuario_entry = tk.Entry(ventana_registro, width=30)
+        usuario_entry.pack()
 
-        btn_actualizar_estado = tk.Button(self, text="Actualizar estado", command=self.actualizar_estado)
-        btn_actualizar_estado.pack(pady=10)
+        contraseña_label = tk.Label(ventana_registro, text="Contraseña:")
+        contraseña_label.pack()
 
-        btn_eliminar_tarea = tk.Button(self, text="Eliminar tarea", command=self.eliminar_tarea)
-        btn_eliminar_tarea.pack(pady=10)
+        contraseña_entry = tk.Entry(ventana_registro, width=30)
+        contraseña_entry.pack()
+
+        def do_registro():
+            usuario = usuario_entry.get()
+            contraseña = contraseña_entry.get()
+
+            data = {
+                "username": usuario,
+                "password": contraseña,
+                "ultimoAcceso": ""
+            }
+
+            print("Enviando datos de registro:", data)
+
+            response = requests.post('http://127.0.0.1:8000/user', json=data)
+
+            # print("Respuesta del servidor:", response.status_code, response.json())
+
+            if response.status_code == 200:
+                messagebox.showinfo("Usuario registrado", "El usuario ha sido registrado exitosamente.")
+                ventana_registro.destroy()
+            elif response.status_code == 409:
+                mensaje_error = response.json().get("detail", "Ocurrió un error al registrar el usuario.")
+                messagebox.showerror("Error", mensaje_error)
+
+        btn_registrar = tk.Button(ventana_registro, text="Enviar", command=do_registro)
+        btn_registrar.pack(pady=10)
+
+
+
+        
+
+    def login(self):
+        ventana = tk.Toplevel()
+        ventana.title('Iniciar sesión')
+        ancho = ventana.winfo_screenwidth()
+        altura = ventana.winfo_screenheight()
+        ventana.geometry(f"{ancho}x{altura}")
+
+        username_label = tk.Label(ventana, text="Usuario:")
+        username_label.pack()
+
+        username_entry = tk.Entry(ventana)
+        username_entry.pack()
+
+        password_label = tk.Label(ventana, text="Contraseña:")
+        password_label.pack()
+
+        password_entry = tk.Entry(ventana, show="*")
+        password_entry.pack()
+
+
+   
+        def do_login():
+            username = username_entry.get()
+            password = password_entry.get()
+            # Realizar el login utilizando las credenciales
+            data = {
+                "username": username,
+                "password": password
+            }
+            response = requests.post('http://127.0.0.1:8000/login', data=data)
+            if response.status_code == 200:
+                access_token = response.json()["access_token"]
+                ventana_token = tk.Toplevel()
+                ventana_token.title("Token de acceso")
+                ancho = ventana_token.winfo_screenwidth()
+                altura = ventana_token.winfo_screenheight()
+                ventana_token.geometry(f"{ancho}x{altura}")
+
+                text_widget = tk.Text(ventana_token)
+                text_widget.insert(tk.END, access_token)
+                text_widget.pack(fill=tk.BOTH, expand=True)
+                self.token_ingresado = access_token
+               
+                btn_enviar = tk.Button(ventana_token, text="Enviar", command=lambda: enviar_token(access_token))
+                btn_enviar.pack(pady=10)
+            else:
+                mensaje_error = response.json().get("detail", "Inicio de sesión fallido. Usuario o contraseña incorrectos.")
+                messagebox.showerror("Error", mensaje_error)
+
+           
+        btn_login = tk.Button(ventana, text="Iniciar sesión", command=do_login)
+        btn_login.pack(pady=10)
+    
+        def enviar_token(token):
+            def do_enviar():
+                token_ingresado = token_entry.get()
+                # Aquí puedes realizar la lógica para enviar el token al servidor
+                headers = {
+                    "Authorization": f"Bearer {token_ingresado}"
+                }
+                response = requests.get('http://127.0.0.1:8000/user/me', headers=headers)
+                if response.status_code == 200:
+                    user = response.json()
+                    # Realizar acciones con la respuesta del servidor
+                    messagebox.showinfo("Token válido", "El token es válido. Usuario: {}".format(user))
+                    ventana_enviar.destroy()
+                    self.open_ventana_tareas(token_ingresado)
+                else:
+                    messagebox.showerror("Error", "El token es inválido o ha expirado.")
+
+            ventana_enviar = tk.Toplevel()
+            ventana_enviar.title("Enviar token")
+            ancho = ventana_enviar.winfo_screenwidth()
+            altura = ventana_enviar.winfo_screenheight()
+            ventana_enviar.geometry(f"{ancho}x{altura}")
+            token_label = tk.Label(ventana_enviar, text="Token de acceso:")
+            token_label.pack()
+
+            token_entry = tk.Entry(ventana_enviar, width=300)
+            token_entry.pack()
+
+            # Agregar botón para enviar el token
+            btn_enviar = tk.Button(ventana_enviar, text="Enviar", command=do_enviar)
+            btn_enviar.pack(pady=10)
+
+            
+            ventana.destroy()
+
+    
+    def open_ventana_tareas(self, token_ingresado):
+        if(token_ingresado):    
+            if self.ventana_tareas is None or not self.ventana_tareas.winfo_exists():
+                # Si la ventana de tareas no existe o ha sido cerrada,
+                # crear una nueva instancia y almacenarla en el atributo
+                self.ventana_tareas = tk.Toplevel(self)
+                self.ventana_tareas.title("Ventana de tareas")
+                ancho = self.ventana_tareas.winfo_screenwidth()
+                altura = self.ventana_tareas.winfo_screenheight()
+                self.ventana_tareas.geometry(f"{ancho}x{altura}")
+                self.ventana_tareas.config(bg="lightblue")
+
+                
+                
+                    
+                btn_usuario = tk.Button(self.ventana_tareas, text="Usuario", command=self.mostrar_usuario, width=15)
+                btn_usuario.pack(pady=10)
+                
+
+                btn_crear_tarea = tk.Button(self.ventana_tareas, text="Crear tarea", command=self.crear_tarea, width=15)
+                btn_crear_tarea.pack(pady=10)
+
+                btn_traer_tarea = tk.Button(self.ventana_tareas, text="Traer tarea", command=self.traer_tarea, width=15)
+                btn_traer_tarea.pack(pady=10)
+
+                btn_actualizar_estado = tk.Button(self.ventana_tareas, text="Actualizar estado", command=self.actualizar_estado, width=15)
+                btn_actualizar_estado.pack(pady=10)
+
+                btn_eliminar_tarea = tk.Button(self.ventana_tareas, text="Eliminar tarea", command=self.eliminar_tarea, width=15)
+                btn_eliminar_tarea.pack(pady=10)
+        else:
+            self.login()
+
+  
+
+
+    def mostrar_usuario(self):
+        headers = {"Authorization": f"Bearer {self.token_ingresado}"}
+        response = requests.get('http://127.0.0.1:8000/user/me', headers=headers)
+        administrador = administradorTarea('admintareas.db')
+
+        if response.status_code == 200:
+            try:
+
+                user_data = response.json()
+                
+                usuario = administrador.buscarUser(user_data)
+                if usuario:
+                    ventana = tk.Tk()  # Si ya tienes una ventana, omite esta línea
+                    ventana.title("Información del Usuario")
+
+                    # Crear widgets para mostrar la información del usuario
+                    label_usuario = tk.Label(ventana, text=f"Usuario: {usuario[0]}")
+                    label_usuario.pack()
+
+                    label_ultimo_acceso = tk.Label(ventana, text=f"Último acceso: {usuario[2]}")
+                    label_ultimo_acceso.pack()
+
+                   
+                else:
+                    messagebox.showerror("Error", "Usuario no encontrado en la base de datos")
+            except ValueError:
+                messagebox.showerror("Error", "Respuesta inválida del servidor")
+        else:
+            messagebox.showerror("Error", "No se pudo obtener la información del usuario")
+
+
 
     def crear_tarea(self):
         ventana = tk.Toplevel()
         ventana.title('Crear tarea')
         ventana.geometry("300x300")
-        id_label = tk.Label(ventana, text="ID:")
-        id_label.pack()
-
-        id_entry = tk.Entry(ventana)
-        id_entry.pack()
+   
 
         # Etiqueta y campo de entrada para "Título"
         titulo_label = tk.Label(ventana, text="Título:")
@@ -46,18 +245,19 @@ class VentanaPrincipal(tk.Tk):
         descripcion_label = tk.Label(ventana, text="Descripción:")
         descripcion_label.pack()
 
-        descripcion_entry = tk.Entry(ventana)
+        descripcion_entry = tk.Entry(ventana, width=60)
         descripcion_entry.pack()
 
         # Etiqueta y campo de entrada para "Estado"
         estado_label = tk.Label(ventana, text="Estado:")
         estado_label.pack()
 
-        estado_entry = tk.Entry(ventana)
+        estado_entry = tk.Entry(ventana, width=60)
         estado_entry.pack()
 
         def crear_tareadb():
-            id_value = id_entry.get()
+            administrador = administradorTarea('admintareas.db')
+            id_value = administrador.generar_numero_aleatorio()
             titulo_value = titulo_entry.get()
             descripcion_value = descripcion_entry.get()
             estado_value = estado_entry.get()
@@ -66,12 +266,14 @@ class VentanaPrincipal(tk.Tk):
                 "id": id_value,
                 "titulo": titulo_value,
                 "descripcion": descripcion_value,
-                "estado": estado_value
+                "estado": estado_value,
+                "creada":"",
+                "actualizada":""
+                
             }
-
+            print("Enviando datos de registro:", tarea)
             response = requests.post('http://127.0.0.1:8000/tarea', json=tarea)
-
-           
+            print("Respuesta del servidor:", response.status_code, response.json())
 
             if response.status_code == 200:
                         tarea_creada = response.json()
@@ -131,21 +333,25 @@ class VentanaPrincipal(tk.Tk):
     def eliminar_tarea(self):
         
         ventana = tk.Toplevel()
-        ventana.title('Crear tarea')
+        ventana.title('Eliminar tarea')
         ventana.geometry("300x300")
         
         def eliminartarea_api(id):
             response = requests.delete(f'http://127.0.0.1:8000/tarea/{id}', json={"id": id})   
-          
+           
             
             if response.status_code == 200:
                 messagebox.showinfo("Tarea eliminada", f"Tarea con {id} eliminada")
+                ventana.destroy()
             elif response.status_code == 404: 
                 messagebox.showerror("Error", "No se encontro tarea con ese id")
+                
             elif response.status_code == 422:
                 messagebox.showerror("Error", "El id debe ser un entero")
+                
             else:
                 messagebox.showerror("Error", "Complete id")
+                
     
         id_label = tk.Label(ventana, text="ID:")
         id_label.pack()
@@ -174,8 +380,7 @@ class VentanaPrincipal(tk.Tk):
             else:
                 messagebox.showerror("Error", "Falta el id")
             
-
-                 
+                  
 
         id_label = tk.Label(ventana, text="ID:")
         id_label.pack()
@@ -185,3 +390,10 @@ class VentanaPrincipal(tk.Tk):
             
         btn_eliminar = tk.Button(ventana, text="Traer tarea", command=lambda: traertarea_api(id_entry.get()))
         btn_eliminar.pack(pady=10)
+    
+   
+
+
+         
+    
+
