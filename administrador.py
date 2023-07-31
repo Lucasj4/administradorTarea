@@ -1,17 +1,15 @@
 from tareas import Tarea
-# from basededatos import insertarFila, crearDB, crearTabla, traerTAREADB, traerTAREASDB, modificarValor
 import sqlite3 as sql
 from fastapi import HTTPException, status
 from pydantic import BaseModel
-import requests
-import hashlib
-from flask import Response
+
 from passlib.context import CryptContext
 import random
 class User(BaseModel):
     username: str
     password: str
     ultimoAcesso: str | None
+
 crypt = CryptContext(schemes=["bcrypt"])
 
 class administradorTarea:
@@ -118,20 +116,23 @@ class administradorTarea:
         conn = sql.connect('admintareas.db')
         cursor = conn.cursor()
         cursor.execute("""CREATE TABLE IF NOT EXISTS usuarios(
+                    nombre TEXT,
+                    apellido TEXT,
+                    fechaNacimiento DATE,
+                    dni TEXT,
                     user TEXT,
                     password TEXT,
                     ultimoAcceso TEXT
                     )""")
         conn.commit()
         conn.close()
-    
 
     def agregarUser(self, user: User):
         conn = sql.connect('admintareas.db')
         cursor = conn.cursor()
         hashed_password = crypt.hash(user.password)
-        cursor.execute("""INSERT INTO usuarios (user, password)
-                        VALUES (?, ?)""", (user.username, hashed_password))
+        cursor.execute("""INSERT INTO usuarios (nombre, apellido , fechaNacimiento, dni, user, password)
+                        VALUES (?,?,?,?,?,?)""", (user.nombre,user.apellido,user.fechaNacimiento,user.dni,user.username, hashed_password))
         user_id = cursor.lastrowid
         conn.commit()
         conn.close()
@@ -160,7 +161,18 @@ class administradorTarea:
             return resultado  # Devuelve una tupla con el usuario, contraseña y último acceso
         else:
             return None
-            
+    
+    def buscar_datos_usuario(self, username: str):
+        conn = sql.connect('admintareas.db')
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT password, ultimoAcceso, user,nombre, apellido, fechaNacimiento, dni FROM usuarios WHERE user=?", (username,))
+        resultado = cursor.fetchone()
+
+        conn.close()
+
+        return resultado
+    
     def eliminarUser(self, username: User):
         conn = sql.connect('admintareas.db')
         cursor = conn.cursor()

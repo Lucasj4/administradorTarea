@@ -3,7 +3,7 @@ from tkinter import messagebox
 import requests
 import json
 from administrador import administradorTarea
-
+from user import Usuario
 
 class VentanaPrincipal(tk.Tk):
     def __init__(self):
@@ -28,7 +28,31 @@ class VentanaPrincipal(tk.Tk):
         ventana_registro = tk.Toplevel(self)
         ventana_registro.title('Registrarse')
         ventana_registro.geometry("300x300")
-            
+
+        nombre_label = tk.Label(ventana_registro, text="Nombre:")
+        nombre_label.pack()
+
+        nombre_entry = tk.Entry(ventana_registro, width=30)
+        nombre_entry.pack()
+
+        apellido_label = tk.Label(ventana_registro, text="Apellido:")
+        apellido_label.pack()
+
+        apellido_entry = tk.Entry(ventana_registro, width=30)
+        apellido_entry.pack()
+
+        fecha_label = tk.Label(ventana_registro, text="Fecha de nacimiento:")
+        fecha_label.pack()
+
+        fecha_entry = tk.Entry(ventana_registro, width=30)
+        fecha_entry.pack()
+
+        dni_label = tk.Label(ventana_registro, text="Dni:")
+        dni_label.pack()
+
+        dni_entry = tk.Entry(ventana_registro, width=30)
+        dni_entry.pack()
+
         usuario_label = tk.Label(ventana_registro, text="Usuario:")
         usuario_label.pack()
 
@@ -42,10 +66,18 @@ class VentanaPrincipal(tk.Tk):
         contraseña_entry.pack()
 
         def do_registro():
+            nombre = nombre_entry.get()
+            apellido = usuario_entry.get()
+            fechaNacimiento = fecha_entry.get()
+            dni = dni_entry.get()
             usuario = usuario_entry.get()
             contraseña = contraseña_entry.get()
 
             data = {
+                "nombre": nombre,
+                "apellido":apellido,
+                "fechaNacimiento":fechaNacimiento,
+                "dni": dni,
                 "username": usuario,
                 "password": contraseña,
                 "ultimoAcceso": ""
@@ -55,7 +87,7 @@ class VentanaPrincipal(tk.Tk):
 
             response = requests.post('http://127.0.0.1:8000/user', json=data)
 
-            # print("Respuesta del servidor:", response.status_code, response.json())
+            print("Respuesta del servidor:", response.status_code, response.json())
 
             if response.status_code == 200:
                 messagebox.showinfo("Usuario registrado", "El usuario ha sido registrado exitosamente.")
@@ -200,13 +232,16 @@ class VentanaPrincipal(tk.Tk):
         headers = {"Authorization": f"Bearer {self.token_ingresado}"}
         response = requests.get('http://127.0.0.1:8000/user/me', headers=headers)
         administrador = administradorTarea('admintareas.db')
-
+        
         if response.status_code == 200:
             try:
 
                 user_data = response.json()
                 
                 usuario = administrador.buscarUser(user_data)
+                datos_usuario = administrador.buscar_datos_usuario(user_data)
+                user = Usuario(*datos_usuario)
+                ultimo_acceso = user.obtener_ultimo_acceso()
                 if usuario:
                     ventana = tk.Tk()  # Si ya tienes una ventana, omite esta línea
                     ventana.title("Información del Usuario")
@@ -215,9 +250,12 @@ class VentanaPrincipal(tk.Tk):
                     label_usuario = tk.Label(ventana, text=f"Usuario: {usuario[0]}")
                     label_usuario.pack()
 
-                    label_ultimo_acceso = tk.Label(ventana, text=f"Último acceso: {usuario[2]}")
+
+                    label_ultimo_acceso = tk.Label(ventana, text=f"Último acceso: {ultimo_acceso}")
                     label_ultimo_acceso.pack()
 
+                    label_nombre = tk.Label(ventana, text=f"Nombre: {user.nombre}")
+                    label_nombre.pack()
                    
                 else:
                     messagebox.showerror("Error", "Usuario no encontrado en la base de datos")
@@ -249,7 +287,7 @@ class VentanaPrincipal(tk.Tk):
         descripcion_entry.pack()
 
         # Etiqueta y campo de entrada para "Estado"
-        estado_label = tk.Label(ventana, text="Estado:")
+        estado_label = tk.Label(ventana, text="Estado:(Pendiente, En prodeso, Finalizada)")
         estado_label.pack()
 
         estado_entry = tk.Entry(ventana, width=60)
@@ -257,37 +295,35 @@ class VentanaPrincipal(tk.Tk):
 
         def crear_tareadb():
             administrador = administradorTarea('admintareas.db')
+        
             id_value = administrador.generar_numero_aleatorio()
             titulo_value = titulo_entry.get()
             descripcion_value = descripcion_entry.get()
             estado_value = estado_entry.get()
 
             tarea = {
-                "id": id_value,
-                "titulo": titulo_value,
-                "descripcion": descripcion_value,
-                "estado": estado_value,
-                "creada":"",
-                "actualizada":""
-                
-            }
+                    "id": id_value,
+                    "titulo": titulo_value,
+                    "descripcion": descripcion_value,
+                    "estado": estado_value,
+                    "actualizada": ""
+                }
             print("Enviando datos de registro:", tarea)
             response = requests.post('http://127.0.0.1:8000/tarea', json=tarea)
             print("Respuesta del servidor:", response.status_code, response.json())
 
             if response.status_code == 200:
-                        tarea_creada = response.json()
-                        
-                        messagebox.showinfo("Tarea creada", f"Tarea creada:\nID: {tarea_creada['id']}\nTítulo: {tarea_creada['titulo']}\nDescripción: {tarea_creada['descripcion']}\nEstado: {tarea_creada['estado']}")
+                    tarea_creada = response.json()
+                    messagebox.showinfo("Tarea creada", f"Tarea creada:\nID: {tarea_creada['id']}\nTítulo: {tarea_creada['titulo']}\nDescripción: {tarea_creada['descripcion']}\nEstado: {tarea_creada['estado']}\nCreada: {tarea_creada['creada']} ")
             elif response.status_code == 422:
-                        messagebox.showerror("Error", "El id debe ser un entero")
-            elif response.status_code==409:
-                        messagebox.showerror("Error", "Ya hay una tarea con ese id")
+                    messagebox.showerror("Error", "El id debe ser un entero")
+            elif response.status_code == 409:
+                    messagebox.showerror("Error", "Ya hay una tarea con ese id")
             elif response.status_code == 400:
-                        messagebox.showerror("Error", "Campos vacios")
-        
+                    messagebox.showerror("Error", "Campos vacíos")
+            else:
+                    messagebox.showerror("Error", "Error al crear la tarea")
 
-                                # Cerrar la ventana "Crear Tarea"
         btn_crear = tk.Button(ventana, text="Crear", command=crear_tareadb)
         btn_crear.pack(pady=10)
         

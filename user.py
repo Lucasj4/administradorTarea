@@ -1,85 +1,39 @@
-from pydantic import BaseModel
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import jwt
-from fastapi import FastAPI, Depends, HTTPException, status
-from pydantic import BaseModel
-from administrador import administradorTarea
-from passlib.context import CryptContext
-from jose import jwt, JWTError
-Secret = "af3e251a3bdc7684f4835167aa0bfe2c80cbc9b611bf0180a078b9104ff06659"
-from datetime import datetime, timedelta
-algoritmo = "HS256"
-ACCESS_TOKEN_DURATION = 2
-crypt = CryptContext(schemes=["bcrypt"])
-aouth2 = OAuth2PasswordBearer(tokenUrl="login")
-administrador = administradorTarea
+import sqlite3 as sql
+class Persona:
+    def __init__(self, nombre, apellido, fechaNacimiento, dni):
+        self.nombre = nombre
+        self.apellido = apellido
+        self.fechaNacimiento = fechaNacimiento
+        self.dni = dni
 
-class User(BaseModel):
-    username: str
-    pasword: str
 
-algoritmo = "HS256"
-ACCESS_TOKEN_DURATION = 1
-app = FastAPI()
-crypt = CryptContext(schemes=["bcrypt"])
-oaouth2 = OAuth2PasswordBearer(tokenUrl="login")
-administrador = administradorTarea
-
-class User(BaseModel):
-    username: str
-    password: str
-
-async def autenticacion_user(token:str = Depends(oaouth2)):
+class Usuario(Persona):
+    def __init__(self, contraseña, ultimoAcceso,usuario, nombre, apellido, fechaNacimiento, dni):
+        super().__init__(nombre, apellido, fechaNacimiento, dni)
+        self.contra = contraseña
+        self.ultimoAcesso = ultimoAcceso
+        self.user = usuario
     
-    exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciales de autenticacion invalidas")
-    try:
-        usuario = jwt.decode(token,Secret, algorithms=[algoritmo] ).get("sub")
-        if usuario is None:
-            raise exception
+    def actualizar_ultimo_acceso(self, nuevo_ultimo_acceso: str):
+        conn = sql.connect('admintareas.db')
+        cursor = conn.cursor()
+        # Actualizar el campo "ultimoAcceso" del usuario con el valor proporcionado.
+        cursor.execute("UPDATE usuarios SET ultimoAcceso=? WHERE user=?", (nuevo_ultimo_acceso, self.user))
+        conn.commit()
+        conn.close()
+
+    def obtener_ultimo_acceso(self):
+        conn = sql.connect('admintareas.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT ultimoAcceso FROM usuarios WHERE user=?", (self.user,))
+        resultado = cursor.fetchone()
+        conn.close()
+
+        if resultado:
+            return resultado[0]  # Devuelve el último acceso como un valor de tipo str
+        else:
+            return None
     
-    except JWTError:
-         raise exception
     
-    user=administrador.buscarUser(usuario)
-    return user[0]
-    
-   
-
-
-async def current_user(user:User = Depends(autenticacion_user)):
-        administrador = administradorTarea('admintareas.db')
-        user =administrador.buscarUser(user.username)
-        if not user:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciales de autenticacion invalidas")
-        return user
-
-
-@app.post("/login")
-async def login(form: OAuth2PasswordRequestForm = Depends()):
-    administrador = administradorTarea('admintareas.db')
-    username = form.username
-
-    usuario = administrador.buscarUser(username)  # Asegúrate de pasar el argumento 'username'
-    user = User(username=usuario[0], password=usuario[1])
-
-    if not usuario:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El usuario no es correcto")
-    
-# Verifica si la contraseña esta verificada
-    crypt.verify(form.password, usuario[1])
-
-    if not crypt.verify(form.password, usuario[1]):
-        if not usuario:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña no es correcta")
-
-    access_token = {"sub": user.username, 
-                    "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_DURATION)}
-    
-    return {"access_token": jwt.encode(access_token, Secret, algorithm=algoritmo), "token_type": "bearer"}
-
-@app.get("user/me")
-async def me(user:User = Depends(current_user)):
-    if user:
-         return user
-    else:
-         return {"mensaje":"No hay"}
+       
+        

@@ -3,16 +3,13 @@ from typing import Optional
 class Tarea:
     
     def __init__(self, id: int, titulo:str, descripcion: str, estado:  str, creada: Optional[str] = None, actualizada: Optional[str] = None):
-        # if None in (id, titulo, descripcion, estado):
-        #     raise ValueError("Faltan datos al crear una instancia de la clase Tarea")
-        #     print("Falta un parametro")
-        
+    
         self.id = id
         self.titulo = titulo
         self.descripcion = descripcion
         self.estado = estado
         if creada is None:
-            self.creada = datetime.datetime.now()
+            self.creada = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         else: 
             self.creada = creada
         self.actualizada = actualizada

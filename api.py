@@ -10,13 +10,9 @@ from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import datetime
 from typing import Optional
+from user import Usuario
 
-algoritmo = "HS256"
-ACCESS_TOKEN_DURATION = 2
-crypt = CryptContext(schemes=["bcrypt"])
-aouth2 = OAuth2PasswordBearer(tokenUrl="login")
-administrador = administradorTarea
-Secret = "af3e251a3bdc7684f4835167aa0bfe2c80cbc9b611bf0180a078b9104ff06659"
+
 
 class tareaApi(BaseModel):
     id: int
@@ -27,9 +23,13 @@ class tareaApi(BaseModel):
     actualizada: Optional[str] = None
 
 class User(BaseModel):
+    nombre: str
+    apellido: str
+    fechaNacimiento: str
+    dni: str
     username: str
     password: str
-    ultimoAcesso: Optional[str] = None
+    ultimoAcceso: Optional[str] = None
     
 app = FastAPI()
 crearDB('admintareas.db')
@@ -41,6 +41,7 @@ ACCESS_TOKEN_DURATION = 1
 app = FastAPI()
 crypt = CryptContext(schemes=["bcrypt"])
 oaouth2 = OAuth2PasswordBearer(tokenUrl="login")
+Secret = "af3e251a3bdc7684f4835167aa0bfe2c80cbc9b611bf0180a078b9104ff06659"
 
 async def autenticacion_user(token:str = Depends(oaouth2)):
     
@@ -145,7 +146,12 @@ async def login(form: OAuth2PasswordRequestForm = Depends()):
 
     # Actualiza el último acceso del usuario con la hora actual
     ultimo_acceso_actual = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    administrador.actualizar_ultimo_acceso(username, ultimo_acceso_actual)
+    datos_usuario = administrador.buscar_datos_usuario(username)
+    user = Usuario(*datos_usuario)
+    
+    user.actualizar_ultimo_acceso(ultimo_acceso_actual)
+
+
     access_token = {"sub": usuario[0], 
                     "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_DURATION)}
     
@@ -156,3 +162,4 @@ async def login(form: OAuth2PasswordRequestForm = Depends()):
 @app.get("/user/me")
 async def me(user:User = Depends(current_user)):
     return user
+
